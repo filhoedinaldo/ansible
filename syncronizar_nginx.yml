@@ -1,4 +1,3 @@
-
 - name: Sincronizar arquivos e gerenciar Nginx
   hosts: vm2
   become: yes
@@ -23,7 +22,7 @@
       when: sync_result.changed  # Somente se houver alterações no diretório
       ignore_errors: yes  # Evita falha se o diretório não existir
 
-      - name: Testar configuração do Nginx antes de reiniciar
+    - name: Testar configuração do Nginx antes de reiniciar
       command: nginx -t
       register: nginx_test
       changed_when: nginx_test.rc != 0
