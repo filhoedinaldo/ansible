@@ -1,0 +1,35 @@
+- name: Sincronizar arquivos e gerenciar Nginx
+  hosts: vm2
+  become: yes
+  tasks:
+
+    - name: Verificar se houve alterações no diretório de configuração do Nginx
+      ansible.builtin.synchronize:
+        src: "/etc/nginx/sites-available/"
+        dest: "/etc/nginx/sites-available/"
+        archive: yes
+        compress: yes
+        delete: yes
+      delegate_to: 192.168.100.101
+      register: sync_result
+      changed_when: sync_result.changed  # Somente quando houver alterações
+
+    - name: Criar backup do diretório de configuração atual
+      archive:
+        path: /etc/nginx/sites-available
+        dest: /etc/nginx/backup_sites-available_{{ ansible_date_time.iso8601 }}.tar.gz
+        format: gz
+      when: sync_result.changed  # Somente se houver alterações no diretório
+      ignore_errors: yes  # Evita falha se o diretório não existir
+
+      - name: Testar configuração do Nginx antes de reiniciar
+      command: nginx -t
+      register: nginx_test
+      changed_when: nginx_test.rc != 0
+      ignore_errors: no
+
+  handlers:
+    - name: Reiniciar Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
