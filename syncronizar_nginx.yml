@@ -14,6 +14,17 @@
       register: sync_result
       changed_when: sync_result.changed  # Somente quando houver alterações
 
+      - name: Verificar se houve alterações no diretório de configuração do Nginx
+      ansible.builtin.synchronize:
+        src: "/var/www/html"
+        dest: "/var/www/html"
+        archive: yes
+        compress: yes
+        delete: yes
+      delegate_to: 192.168.100.101
+      register: sync_result
+      changed_when: sync_result.changed  # Somente quando houver alterações
+
     - name: Criar backup do diretório de configuração atual
       archive:
         path: /etc/nginx/sites-available
