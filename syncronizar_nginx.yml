@@ -1,8 +1,8 @@
 - name: Sincronizar arquivos e gerenciar Nginx
-  hosts: vm2
+  hosts: "{{ target_host | default('vm2') }}"  # Definição do host como variável
   become: yes
   vars:
-    destino_sync: "192.168.100.101"  # Defina o destino aqui
+    origem_sync: "192.168.100.101"  # define servidor origem
 
   tasks:
 
@@ -13,7 +13,7 @@
         archive: yes
         compress: yes
         delete: yes
-      delegate_to: "{{ destino_sync }}"
+      delegate_to: "{{ origem_sync }}"
       register: nginx_sync_result
 
     - name: Sincronizar diretório da aplicação web
@@ -23,7 +23,7 @@
         archive: yes
         compress: yes
         delete: yes
-      delegate_to: "{{ destino_sync }}"
+      delegate_to: "{{ origem_sync }}"
       register: html_sync_result
 
     - name: Criar backup do diretório de configuração atual
@@ -31,7 +31,7 @@
         path: /etc/nginx/sites-available
         dest: /etc/nginx/backup_sites-available_{{ ansible_date_time.iso8601 }}.tar.gz
         format: gz
-      when: nginx_sync_result.stdout != "" or html_sync_result.stdout != ""  # Verifica se houve alterações
+      when: nginx_sync_result.changed or html_sync_result.changed
       ignore_errors: yes  # Evita falha se o diretório não existir
 
     - name: Testar configuração do Nginx antes de reiniciar
