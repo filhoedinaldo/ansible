@@ -2,10 +2,26 @@
   hosts: "{{ target_host }}"  # Definição do host como variável
   become: yes
   vars:
-    origem_sync: "192.168.100.101"  # define servidor origem
+    origem_sync: "192.168.100.101"  # Define servidor origem
 
   tasks:
+    # Backup do diretório de configuração do Nginx
+    - name: Criar backup do diretório de configuração do Nginx
+      archive:
+        path: /etc/nginx/sites-available
+        dest: /etc/nginx/backup_sites-available_{{ ansible_date_time.iso8601 }}.tar.gz
+        format: gz
+      ignore_errors: yes  # Evita falha se o diretório não existir
 
+    # Backup do diretório da aplicação web
+    - name: Criar backup do diretório da aplicação web
+      archive:
+        path: /var/www/html
+        dest: /var/www/backup_html_{{ ansible_date_time.iso8601 }}.tar.gz
+        format: gz
+      ignore_errors: yes  # Evita falha se o diretório não existir
+
+    # Sincronizar diretório de configuração do Nginx
     - name: Sincronizar diretório de configuração do Nginx
       ansible.builtin.synchronize:
         src: "/etc/nginx/sites-available/"
@@ -16,6 +32,7 @@
       delegate_to: "{{ origem_sync }}"
       register: nginx_sync_result
 
+    # Sincronizar diretório da aplicação web
     - name: Sincronizar diretório da aplicação web
       ansible.builtin.synchronize:
         src: "/var/www/html/"
@@ -26,16 +43,8 @@
       delegate_to: "{{ origem_sync }}"
       register: html_sync_result
 
-    - name: Criar backup do diretório de configuração atual
-      archive:
-        path: /etc/nginx/sites-available
-        dest: /etc/nginx/backup_sites-available_{{ ansible_date_time.iso8601 }}.tar.gz
-        format: gz
-      when: nginx_sync_result.changed or html_sync_result.changed
-      ignore_errors: yes  # Evita falha se o diretório não existir
-
-handlers:
-  - name: Reiniciar Nginx
-    ansible.builtin.service:
-      name: nginx
-      state: restarted
+  handlers:
+    - name: Reiniciar Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
