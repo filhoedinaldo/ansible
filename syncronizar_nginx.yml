@@ -34,17 +34,6 @@
       when: nginx_sync_result.changed or html_sync_result.changed
       ignore_errors: yes  # Evita falha se o diretório não existir
 
-    - name: Testar configuração do Nginx antes de reiniciar
-      command: nginx -t
-      register: nginx_test
-      failed_when: nginx_test.rc != 0  # Falha caso haja erro
-      changed_when: false  # Sempre aparece como 'ok' para evitar falsa mudança
-      ignore_errors: no
-
-    - name: Notificar handler se houver alterações
-      meta: flush_handlers  # Força a execução dos handlers imediatamente
-      when: sync_result.changed  # Só notifica se houve mudanças na sincronização
-
 handlers:
   - name: Reiniciar Nginx
     ansible.builtin.service:
