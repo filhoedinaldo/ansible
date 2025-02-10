@@ -1,5 +1,5 @@
 - name: Sincronizar arquivos e gerenciar Nginx
-  hosts: "{{ target_host | default('vm2') }}"  # Definição do host como variável
+  hosts: "{{ target_host }}"  # Definição do host como variável
   become: yes
   vars:
     origem_sync: "192.168.100.101"  # define servidor origem
