@@ -1,36 +1,37 @@
 - name: Sincronizar arquivos e gerenciar Nginx
   hosts: vm2
   become: yes
+  vars:
+    destino_sync: "192.168.100.101"  # Defina o destino aqui
+
   tasks:
 
-    - name: Verificar se houve alterações no diretório de configuração do Nginx
+    - name: Sincronizar diretório de configuração do Nginx
       ansible.builtin.synchronize:
         src: "/etc/nginx/sites-available/"
         dest: "/etc/nginx/sites-available/"
         archive: yes
         compress: yes
         delete: yes
-      delegate_to: 192.168.100.101
-      register: sync_result
-      changed_when: sync_result.changed  # Somente quando houver alterações
+      delegate_to: "{{ destino_sync }}"
+      register: nginx_sync_result
 
-      - name: Verificar se houve alterações no diretório de configuração do Nginx
+    - name: Sincronizar diretório da aplicação web
       ansible.builtin.synchronize:
-        src: "/var/www/html"
-        dest: "/var/www/html"
+        src: "/var/www/html/"
+        dest: "/var/www/html/"
         archive: yes
         compress: yes
         delete: yes
-      delegate_to: 192.168.100.101
-      register: sync_result
-      changed_when: sync_result.changed  # Somente quando houver alterações
+      delegate_to: "{{ destino_sync }}"
+      register: html_sync_result
 
     - name: Criar backup do diretório de configuração atual
       archive:
         path: /etc/nginx/sites-available
         dest: /etc/nginx/backup_sites-available_{{ ansible_date_time.iso8601 }}.tar.gz
         format: gz
-      when: sync_result.changed  # Somente se houver alterações no diretório
+      when: nginx_sync_result.stdout != "" or html_sync_result.stdout != ""  # Verifica se houve alterações
       ignore_errors: yes  # Evita falha se o diretório não existir
 
     - name: Testar configuração do Nginx antes de reiniciar
@@ -38,6 +39,7 @@
       register: nginx_test
       changed_when: nginx_test.rc != 0
       ignore_errors: no
+      notify: Reiniciar Nginx  # Chama o handler apenas se houver mudanças
 
   handlers:
     - name: Reiniciar Nginx
